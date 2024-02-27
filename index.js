@@ -2,7 +2,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const app = express();
-const bodyParse = require('body-parser')
+const { MongoClient } = require('mongodb')
+const dns = require('dns')
+const urlparser = require('url')
+const bodyParser = require('body-parser');
 
 // Basic Configuration
 const port = process.env.PORT || 3000;
@@ -25,13 +28,29 @@ app.listen(port, function () {
 });
 
 // my code
-app.use('/api', (req, res, next) => {
-  next()
-})
+// https://youtu.be/VP_FOwmGH44?t=735 
+const client = new MongoClient(process.env.MONGODB_URI)
+const db = client.db("urlshortner")
+const urls = db.collection("urls") // we are only using mongodb, not mongoose, due to this project's simplicity. for clarification, mongoose is built on top of mongodb. 
+
+app.use('/api', bodyParser.urlencoded({ extended: true }))
 
 app.post('/api/shorturl', (req, res) => {
-  res.json({
-    original_url: null,
-    short_url: null
+  const url = req.body.url
+  const dnslookup = dns.lookup(urlparser.parse(url).hostname, async (err, address) => {
+    if (!address) {
+      res.json({ error: "Invalid URL" })
+    } else {
+      const urlCount = await urls.countDocuments({})
+      const urlDoc = {
+        url,
+        short_url: urlCount
+      }
+      const result = await urls.insertOne(urlDoc)
+      res.json({
+        original_url: url,
+        short_url: urlCount
+      })
+    }
   })
 })
