@@ -43,7 +43,7 @@ app.post('/api/shorturl', (req, res) => {
     } else {
       const urlCount = await urls.countDocuments({})
       const urlDoc = {
-        url,
+        url, // same as variable name: value
         short_url: urlCount
       }
       const result = await urls.insertOne(urlDoc)
@@ -53,4 +53,10 @@ app.post('/api/shorturl', (req, res) => {
       })
     }
   })
+})
+
+app.get("/api/shorturl/:short_url", async (req, res) => {
+  const shorturl = req.params.short_url
+  const urlDoc = await urls.findOne({ short_url: +shorturl }) // typeof +"number" is number
+  res.redirect(urlDoc.url)
 })
